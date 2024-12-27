@@ -135,6 +135,10 @@ function compareWithFind {
 	# File(s) and director(y|ies) as starting points
 	compareWithFind foo/bar/afile . -type f -not -path '*.git*' -- foo/bar/afile .
 	compareWithFind foo/bar/..//bar/afile . -type f -not -path '*.git*' -- foo/bar/..//bar/afile .
+
+	createGitFile "file-with"$'\n'"newline"
+	createGitFile "Юникод😁"
+	compareWithFind . -type f -not -path '*.git*' -- .
 }
 @test "git-find: Symlinks in git" {
 	gitInit
