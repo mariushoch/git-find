@@ -3,6 +3,7 @@
 function gitInit {
 	cd "$BATS_TEST_TMPDIR" || false
 	git init >/dev/null 2>&1 || true
+	git config user.name "Your Name"
 	git config user.email "you@example.com"
 }
 
