@@ -1,7 +1,9 @@
 #!/usr/bin/env bats
 
 function gitInit {
-	git init "$BATS_TEST_TMPDIR" >/dev/null 2>&1 || true
+	cd "$BATS_TEST_TMPDIR" || false
+	git init >/dev/null 2>&1 || true
+	git config user.email "you@example.com"
 }
 
 function createGitFile {
