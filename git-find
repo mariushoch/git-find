@@ -12,7 +12,7 @@ function registerStartingPoint {
 }
 
 function gitLsFiles {
-	# We checked that this worked before… just hope for the best.
+	# We checked that changing into this directory worked before… just hope for the best.
 	cd "$gitDir" || true
 	git ls-files "$@"
 }

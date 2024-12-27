@@ -17,6 +17,11 @@ find expressions are fully supported, except for "-maxdepth" and "-mindepth".
 For further details, see "man 1 find".
 ```
 
+## Installation
+- Download the script: [`git-find`](https://github.com/mariushoch/git-find/raw/refs/heads/main/git-find)
+- Make it executable: `chmod +x git-find`
+- Place it in a directory in your `$PATH`. For example: `mv git-find /usr/local/bin`).
+
 ## Requirements
 This script requires `git`, `bash`, `find` and `coreutils`.
 
