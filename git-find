@@ -1,0 +1,129 @@
+#!/bin/bash
+
+function isStartingPoint {
+	[ -n "$1" ] && [[ ! "$1" =~ ^- ]]
+}
+
+function registerStartingPoint {
+	startingPoints+=("$1")
+	startingPointsRaw+=("$2")
+	startingPointsNormalized+=("${3:-}")
+	startingPointPrefixCuts+=("${4:-}")
+}
+
+function gitLsFiles {
+	# We checked that this worked before… just hope for the best.
+	cd "$gitDir" || true
+	git ls-files "$@"
+}
+
+if [ "$1" == "--help" ]; then
+	echo "Usage: $(basename "$0") [-H] [-L] [-P] [-D debugopts] [-Olevel] [starting-point...] [expression]"
+	echo
+	echo "Search for files in the current git repository."
+	echo
+	echo "find expressions are fully supported, except for \"-maxdepth\" and \"-mindepth\"."
+	echo "For further details, see \"man 1 find\"."
+
+	exit 0
+fi
+
+if ! gitDir="$(git rev-parse --show-toplevel 2>/dev/null)" || ! (cd "$gitDir"); then
+	# Just let git fail and tell the user
+	exec git status
+fi
+findOptions=()
+
+startingPoints=()
+startingPointsRaw=()
+startingPointsNormalized=()
+startingPointPrefixCuts=()
+
+# Handle find options that are passed before the starting points:
+# [-H] [-L] [-P] [-D debugopts] [-Olevel]
+while true; do
+	if [ "$1" == '-H' ] || [ "$1" == '-L' ] || [ "$1" == '-P' ]; then
+		findOptions+=("$1")
+		shift
+	elif [ "$1" == '-D' ]; then
+		findOptions+=("$1" "$2")
+		shift 2
+	elif [[ "$1" =~ ^-O[0-3]$ ]]; then
+		findOptions+=("$1")
+		shift
+	else
+		break
+	fi
+done
+
+if ! isStartingPoint "$1"; then
+	# Called without any starting points, treat as if called with "."
+	registerStartingPoint git "./" "$(realpath --relative-to "$gitDir" ".")" 0
+fi
+
+while isStartingPoint "$1"; do
+	if [[ "$(realpath --relative-to "$gitDir" "$1")" =~ ^\.\. ]]; then
+		echo "Error: Starting point \"$1\" is outside of the current git directory. Giving up." >&2
+		exit 255
+	fi
+
+	startingPointRaw="$1"
+	shift
+	if ! test -e "$startingPointRaw"; then
+		# If the starting point doesn't exist, directly pass it to find which will
+		# complain and set the exit code accordingly.
+		registerStartingPoint raw "$startingPointRaw"
+		continue
+	fi
+
+	# Like find does: If the starting point itself is a symlink, don't resolve it. Otherwise follow symlinks in starting points.
+	if test -h "$startingPointRaw"; then
+		normalized="$(realpath --no-symlinks --relative-to "$gitDir" "$startingPointRaw")"
+	else
+		normalized="$(realpath --relative-to "$gitDir" "$startingPointRaw")"
+	fi
+
+	if [ ! "${startingPointRaw: -1}" == "/" ] && test -d "$startingPointRaw" && ! test -h "$startingPointRaw"; then
+		# For directories, find assumes foo and foo/ to be the same (but not foo//)
+		startingPointRaw="$startingPointRaw/"
+	fi
+
+	lenNorm="$((${#normalized} + 1))"
+
+	if [ "$normalized" == "." ]; then
+		# Special case: If the normalized directory is the current working directory, don't cut anything
+		# from the git ls-files output, just prepend.
+		lenNorm=0
+	fi
+
+	# Only register the starting points if they are in git (or don't exist at all).
+	# Silently drop them otherwise, like git grep does.
+	if (gitLsFiles --error-unmatch "$normalized" >/dev/null 2>&1); then
+		registerStartingPoint git "$startingPointRaw" "$normalized" "$lenNorm"
+	fi
+done
+
+i=0
+for arg in "$@"; do
+	if [ "$arg" == "-mindepth" ] || [ "$arg" == "-maxdepth" ]; then
+		echo "Error: git-find doesn't support \"$arg\"." >&2
+		exit 1
+	fi
+done
+
+i=0
+while [ $i -lt "${#startingPoints[@]}" ]; do
+	if [ "${startingPoints[$i]}" == "raw" ]; then
+		echo -ne "${startingPointsRaw[$i]}\0"
+	else
+		startingPointRaw="${startingPointsRaw[$i]}"
+		startingPointPrefixCut="${startingPointPrefixCuts[$i]}"
+		# Note: Use comm to exclude files deleted (but known to git), per https://stackoverflow.com/a/71424856
+		# shellcheck disable=SC2164
+		comm -z -23 <(gitLsFiles -z "${startingPointsNormalized[$i]}" | sort -z) <(gitLsFiles --deleted -z "${startingPointsNormalized[$i]}" | sort -z) | \
+			while IFS= read -r -d $'\0' file; do
+				echo -ne "$startingPointRaw${file:$startingPointPrefixCut}\0"
+			done
+	fi
+	((i++)) || true
+done | exec find "${findOptions[@]}" -files0-from /dev/stdin -maxdepth 0 "$@"
