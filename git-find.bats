@@ -47,9 +47,11 @@ function compareWithFindCd {
 
 	set -o pipefail
 	if ! gitFindRes="$("$BATS_TEST_DIRNAME"/git-find "${argsGitFind[@]}" 2>&1 | sort)"; then
+		echo "$gitFindRes"
 		return 1
 	fi
 	if ! findRes="$(find "${argsFind[@]}" 2>&1 | sort)"; then
+		echo "$findRes"
 		return 2
 	fi
 	set +o pipefail
@@ -94,47 +96,53 @@ function compareWithFind {
 	createGitFile "file-in-top-dir"
 	mkdir "$BATS_TEST_TMPDIR/empty-folder"
 
-	# Director(y|ies) as starting point(s)
-	compareWithFind . -type f -not -path '*.git*' -- .
-	compareWithFind -name afile -type f -not -path '*.git*' -- -name afile
-	compareWithFind empty-folder -type f -not -path '*.git*' -- empty-folder
-	compareWithFind . -type f -path '*hidden*' -not -path '*.git*' -- . -path '*hidden*'
-	compareWithFind . . . -type f -not -path '*.git*' -- . . .
-	compareWithFind -type f -not -path '*.git*' --
-	compareWithFind ./ -type f -not -path '*.git*' -- ./
-	compareWithFind .// -type f -not -path '*.git*' -- .//
-	compareWithFind "$BATS_TEST_TMPDIR" -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"
-	compareWithFind "$BATS_TEST_TMPDIR"/ -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"/
-	compareWithFind "$BATS_TEST_TMPDIR"/// -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"///
-	compareWithFind "$BATS_TEST_TMPDIR"//../"$(basename "$BATS_TEST_TMPDIR")"/ -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"//../"$(basename "$BATS_TEST_TMPDIR")"/
-	compareWithFind ./foo/.. -type f -not -path '*.git*' -- ./foo/..
-	compareWithFind ./foo///.. -type f -not -path '*.git*' -- ./foo///..
-	compareWithFind ./foo//bar/.././.. -type f -not -path '*.git*' -- ./foo//bar/.././..
-	compareWithFind foo/bar/.././.. -type f -not -path '*.git*' -- foo/bar/.././..
-	compareWithFind . foo/// . -type f -not -path '*.git*' -- . foo/// .
-	compareWithFind . -type f -not -path '*.git*' -name 'afi*' -- . -name 'afi*'
-	compareWithFind . -type f -not -path '*.git*' -- . -name 'afi*' -or -true
-	compareWithFind . -type f -not -path '*.git*' -- -or -true
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo" .. -type f -not -path '*.git*' -- ..
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo" ../with-hidden-file -type f -not -path '*.git*' -- ../with-hidden-file
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" .. -type f -not -path '*.git*' -- ..
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" ../.. -type f -not -path '*.git*' -- ../..
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" ../bar/../.. -type f -not -path '*.git*' -- ../bar/../..
-	compareWithFindCd "$BATS_TEST_TMPDIR/with-hidden-file" .. -type f -not -path '*.git*' -- ..
-	compareWithFindCd "$BATS_TEST_TMPDIR/empty-folder" . -type f -- .
-	compareWithFindCd "$BATS_TEST_TMPDIR/empty-folder" .. -type f -not -path '*.git*' -- ..
+	while true; do
+		# Director(y|ies) as starting point(s)
+		compareWithFind . -type f -not -path '*.git*' -- .
+		compareWithFind -name afile -type f -not -path '*.git*' -- -name afile
+		compareWithFind empty-folder -type f -not -path '*.git*' -- empty-folder
+		compareWithFind . -type f -path '*hidden*' -not -path '*.git*' -- . -path '*hidden*'
+		compareWithFind . . . -type f -not -path '*.git*' -- . . .
+		compareWithFind -type f -not -path '*.git*' --
+		compareWithFind ./ -type f -not -path '*.git*' -- ./
+		compareWithFind .// -type f -not -path '*.git*' -- .//
+		compareWithFind "$BATS_TEST_TMPDIR" -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"
+		compareWithFind "$BATS_TEST_TMPDIR"/ -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"/
+		compareWithFind "$BATS_TEST_TMPDIR"/// -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"///
+		compareWithFind "$BATS_TEST_TMPDIR"//../"$(basename "$BATS_TEST_TMPDIR")"/ -type f -not -path '*.git*' -- "$BATS_TEST_TMPDIR"//../"$(basename "$BATS_TEST_TMPDIR")"/
+		compareWithFind ./foo/.. -type f -not -path '*.git*' -- ./foo/..
+		compareWithFind ./foo///.. -type f -not -path '*.git*' -- ./foo///..
+		compareWithFind ./foo//bar/.././.. -type f -not -path '*.git*' -- ./foo//bar/.././..
+		compareWithFind foo/bar/.././.. -type f -not -path '*.git*' -- foo/bar/.././..
+		compareWithFind . foo/// . -type f -not -path '*.git*' -- . foo/// .
+		compareWithFind . -type f -not -path '*.git*' -name 'afi*' -- . -name 'afi*'
+		compareWithFind . -type f -not -path '*.git*' -- . -name 'afi*' -or -true
+		compareWithFind . -type f -not -path '*.git*' -- -or -true
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo" .. -type f -not -path '*.git*' -- ..
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo" ../with-hidden-file -type f -not -path '*.git*' -- ../with-hidden-file
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" .. -type f -not -path '*.git*' -- ..
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" ../.. -type f -not -path '*.git*' -- ../..
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo/bar" ../bar/../.. -type f -not -path '*.git*' -- ../bar/../..
+		compareWithFindCd "$BATS_TEST_TMPDIR/with-hidden-file" .. -type f -not -path '*.git*' -- ..
+		compareWithFindCd "$BATS_TEST_TMPDIR/empty-folder" . -type f -- .
+		compareWithFindCd "$BATS_TEST_TMPDIR/empty-folder" .. -type f -not -path '*.git*' -- ..
 
-	# File(s) as starting point(s)
-	compareWithFind with-hidden-file/.dotfile -type f -not -path '*.git*' -- with-hidden-file/.dotfile
-	compareWithFind foo/bar/afile -- foo/bar/afile
-	compareWithFind foo/bar/afile foo/bar/afile -- foo/bar/afile foo/bar/afile
-	compareWithFind foo/bar/afile file-in-top-dir -- foo/bar/afile file-in-top-dir
-	compareWithFind foo/bar/../bar/afile -- foo/bar/../bar/afile
-	compareWithFindCd "$BATS_TEST_TMPDIR/foo" bar/afile -type f -not -path '*.git*' -- bar/afile
+		# File(s) as starting point(s)
+		compareWithFind with-hidden-file/.dotfile -type f -not -path '*.git*' -- with-hidden-file/.dotfile
+		compareWithFind foo/bar/afile -- foo/bar/afile
+		compareWithFind foo/bar/afile foo/bar/afile -- foo/bar/afile foo/bar/afile
+		compareWithFind foo/bar/afile file-in-top-dir -- foo/bar/afile file-in-top-dir
+		compareWithFind foo/bar/../bar/afile -- foo/bar/../bar/afile
+		compareWithFindCd "$BATS_TEST_TMPDIR/foo" bar/afile -type f -not -path '*.git*' -- bar/afile
 
-	# File(s) and director(y|ies) as starting points
-	compareWithFind foo/bar/afile . -type f -not -path '*.git*' -- foo/bar/afile .
-	compareWithFind foo/bar/..//bar/afile . -type f -not -path '*.git*' -- foo/bar/..//bar/afile .
+		# File(s) and director(y|ies) as starting points
+		compareWithFind foo/bar/afile . -type f -not -path '*.git*' -- foo/bar/afile .
+		compareWithFind foo/bar/..//bar/afile . -type f -not -path '*.git*' -- foo/bar/..//bar/afile .
+
+		# Run all of these tests again with a changed file
+		[ "$(cat foo/bar/afile)" == "changed" ] && break
+		echo changed > "foo/bar/afile"
+	done
 
 	createGitFile "file-with"$'\n'"newline"
 	createGitFile "Юникод😁"

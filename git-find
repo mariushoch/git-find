@@ -98,7 +98,7 @@ while isStartingPoint "$1"; do
 
 	# Only register the starting points if they are in git (or don't exist at all).
 	# Silently drop them otherwise, like git grep does.
-	if (gitLsFiles --error-unmatch "$normalized" >/dev/null 2>&1); then
+	if (gitLsFiles --error-unmatch -- "$normalized" >/dev/null 2>&1); then
 		registerStartingPoint git "$startingPointRaw" "$normalized" "$lenNorm"
 	fi
 done
@@ -119,8 +119,7 @@ while [ $i -lt "${#startingPoints[@]}" ]; do
 		startingPointRaw="${startingPointsRaw[$i]}"
 		startingPointPrefixCut="${startingPointPrefixCuts[$i]}"
 		# Note: Use comm to exclude files deleted (but known to git), per https://stackoverflow.com/a/71424856
-		# shellcheck disable=SC2164
-		comm -z -23 <(gitLsFiles -z "${startingPointsNormalized[$i]}" | sort -z) <(gitLsFiles --deleted -z "${startingPointsNormalized[$i]}" | sort -z) | \
+		comm -z -23 <(gitLsFiles -z -- "${startingPointsNormalized[$i]}" | sort -z) <(gitLsFiles --deleted -z -- "${startingPointsNormalized[$i]}" | sort -z) | \
 			while IFS= read -r -d $'\0' file; do
 				echo -ne "$startingPointRaw${file:$startingPointPrefixCut}\0"
 			done
